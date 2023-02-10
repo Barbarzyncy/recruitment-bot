@@ -1,0 +1,14 @@
+version: "3.7"
+
+services:
+  bot:
+    image: bot
+    env_file: .env
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+    command: run
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
