@@ -4,16 +4,6 @@ from io import StringIO
 import discord
 import emoji
 from discord import app_commands
-
-from strings import (
-    CMD_CHOICE_ACCEPTED,
-    CMD_CHOICE_NO_CONTACT,
-    CMD_CHOICE_REJECTED,
-    CMD_DESCRIPTION,
-    CMD_NAME,
-    MSG_NO_PERMISSION,
-    MSG_WRONG_CHANNEL,
-)
 from settings import (
     CHANNEL_MAP,
     DISCORD_BOT_TOKEN,
@@ -27,6 +17,15 @@ from settings import (
     SUMMARY_RESPONSE,
     SUMMARY_TITLE,
     SUMMARY_USER,
+)
+from strings import (
+    CMD_CHOICE_ACCEPTED,
+    CMD_CHOICE_NO_CONTACT,
+    CMD_CHOICE_REJECTED,
+    CMD_DESCRIPTION,
+    CMD_NAME,
+    MSG_NO_PERMISSION,
+    MSG_WRONG_CHANNEL,
 )
 
 intents = discord.Intents.default()
@@ -51,7 +50,14 @@ guild_identifier = discord.Object(id=DISCORD_GUILD_ID)
 )
 async def rekrutacja(
     interaction: discord.Interaction, result: app_commands.Choice[str]
-):
+) -> None:
+    """
+    Close the recruitment form using a simple Discord command.
+    Function name in Polish, because I had to name it like the command.
+    :param interaction: User interaction, passed by Discord.
+    :param result: The choice the admin user makes.
+    """
+
     admin_role = discord.utils.get(interaction.guild.roles, id=OFFICER_ROLE_ID)
     if admin_role not in interaction.user.roles:
         await interaction.response.send_message(MSG_NO_PERMISSION)
@@ -102,7 +108,7 @@ async def rekrutacja(
 
 
 @client.event
-async def on_ready():
+async def on_ready() -> None:
     await tree.sync(guild=guild_identifier)
 
 
