@@ -5,22 +5,29 @@ import discord
 import emoji
 from discord import app_commands
 
-from messages import MSG_NO_PERMISSION, MSG_WRONG_CHANNEL
-
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-DISCORD_GUILD_ID = int(os.getenv("DISCORD_GUILD_ID"))
-RECRUITMENT_CATEGORY_ID = int(os.getenv("RECRUITMENT_CATEGORY_ID"))
-OFFICER_ROLE_ID = int(os.getenv("OFFICER_ROLE_ID"))
-CHANNEL_ACCEPTED_ID = int(os.getenv("CHANNEL_ACCEPTED_ID"))
-CHANNEL_REJECTED_ID = int(os.getenv("CHANNEL_REJECTED_ID"))
-CHANNEL_NO_CONTACT_ID = int(os.getenv("CHANNEL_NO_CONTACT_ID"))
-
-CHANNEL_MAP = {
-    "accepted": CHANNEL_ACCEPTED_ID,
-    "rejected": CHANNEL_REJECTED_ID,
-    "no_contact": CHANNEL_NO_CONTACT_ID,
-}
-
+from strings import (
+    CMD_CHOICE_ACCEPTED,
+    CMD_CHOICE_NO_CONTACT,
+    CMD_CHOICE_REJECTED,
+    CMD_DESCRIPTION,
+    CMD_NAME,
+    MSG_NO_PERMISSION,
+    MSG_WRONG_CHANNEL,
+)
+from settings import (
+    CHANNEL_MAP,
+    DISCORD_BOT_TOKEN,
+    DISCORD_GUILD_ID,
+    MSG_OFFICER_ROLE_NAME,
+    OFFICER_ROLE_ID,
+    RECRUITMENT_CATEGORY_ID,
+    SUMMARY_DELIMITER,
+    SUMMARY_FILE_NAME,
+    SUMMARY_RECRUITMENT_TYPE,
+    SUMMARY_RESPONSE,
+    SUMMARY_TITLE,
+    SUMMARY_USER,
+)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -31,15 +38,15 @@ guild_identifier = discord.Object(id=DISCORD_GUILD_ID)
 
 
 @tree.command(
-    name="rekrutacja",
+    name=CMD_NAME,
     guild=guild_identifier,
-    description="Zarządzaj podaniem rekrutacyjnym - zaakceptuj, odrzuć lub oznacz jako brak kontaktu.",
+    description=CMD_DESCRIPTION,
 )
 @app_commands.choices(
     result=[
-        app_commands.Choice(name="Zaakceptowany", value="accepted"),
-        app_commands.Choice(name="Odrzucony", value="rejected"),
-        app_commands.Choice(name="Brak kontaktu", value="no_contact"),
+        app_commands.Choice(name=CMD_CHOICE_ACCEPTED, value="accepted"),
+        app_commands.Choice(name=CMD_CHOICE_REJECTED, value="rejected"),
+        app_commands.Choice(name=CMD_CHOICE_NO_CONTACT, value="no_contact"),
     ]
 )
 async def rekrutacja(
@@ -53,7 +60,7 @@ async def rekrutacja(
         await interaction.response.send_message(MSG_WRONG_CHANNEL)
         return
 
-    summary = {"Oficer": f"<@{interaction.user.id}>"}
+    summary = {MSG_OFFICER_ROLE_NAME: f"<@{interaction.user.id}>"}
     messages = []
 
     recruitment_embed_handled = False
@@ -61,11 +68,11 @@ async def rekrutacja(
         if not recruitment_embed_handled and message.embeds:
             recruitment_embed_handled = True
             recruitment_embed = message.embeds[0]
-            summary["Typ podania"] = recruitment_embed.title
-            summary["Użytkownik"] = recruitment_embed.description.split(" ", 1)[1]
+            summary[SUMMARY_RECRUITMENT_TYPE] = recruitment_embed.title
+            summary[SUMMARY_USER] = recruitment_embed.description.split(" ", 1)[1]
             for field in recruitment_embed.fields:
                 messages.append(emoji.demojize(f"{field.name}: {field.value}"))
-            messages.append("==============================")
+            messages.append(SUMMARY_DELIMITER)
         else:
             messages.append(
                 emoji.demojize(
@@ -73,21 +80,23 @@ async def rekrutacja(
                 )
             )
 
-    summary_embed = discord.Embed(title="Podsumowanie rekrutacji")
+    summary_embed = discord.Embed(title=SUMMARY_TITLE)
     for label, value in summary.items():
         summary_embed.add_field(name=label, value=value)
 
     file = StringIO(os.linesep.join(messages))
     discord_file = discord.File(
         fp=file,
-        filename="historia_wiadomosci.txt",
+        filename=SUMMARY_FILE_NAME,
         spoiler=False,
     )
 
     channel = discord.utils.get(
         interaction.guild.channels, id=CHANNEL_MAP[result.value]
     )
-    await interaction.response.send_message(f"Przenoszę podanie do {channel.name}.")
+    await interaction.response.send_message(
+        SUMMARY_RESPONSE.format(channel_name=channel.name)
+    )
     await channel.send(file=discord_file, embed=summary_embed)
     await interaction.channel.delete()
 
